@@ -1,13 +1,16 @@
 import firebase_admin
-from firebase_admin import auth
+from firebase_admin import auth, firestore
 import functions_framework
 import os
 import json
+from datetime import datetime
 
 PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT", "gcp-learning-497122")
 
 if not firebase_admin._apps:
     firebase_admin.initialize_app(options={"projectId": PROJECT_ID})
+
+db = firestore.client()
 
 
 def _cors_headers():
@@ -135,6 +138,16 @@ def admin_users(request):
 
         user = auth.create_user(email=email, password=password)
         auth.set_custom_user_claims(user.uid, {"role": role})
+
+        db.collection("users").document(user.uid).set(
+            {
+                "uid": user.uid,
+                "email": email,
+                "role": role,
+                "createdAt": datetime.utcnow(),
+                "createdBy": decoded.get("uid"),
+            }
+        )
 
         return _json(
             {
