@@ -45,7 +45,7 @@ export default function ImageGallery() {
           {uploads.map((upload) => (
             <div key={upload.fileId} style={styles.card}>
               <div style={styles.imageContainer}>
-                <ImagePreview storagePath={upload.storagePath} />
+                <ImagePreview signedUrl={upload.signedUrl} fileName={upload.fileName} />
               </div>
               <div style={styles.cardContent}>
                 <h4 style={styles.fileName}>{upload.fileName}</h4>
@@ -70,21 +70,30 @@ export default function ImageGallery() {
 }
 
 interface ImagePreviewProps {
-  storagePath: string;
+  signedUrl?: string;
+  fileName: string;
 }
 
-function ImagePreview({ storagePath }: ImagePreviewProps) {
-  useEffect(() => {
-    // Note: For production, generate a signed URL on backend instead
-    // to avoid exposing bucket structure. For now, we use a simple approach
-    // that relies on Storage Security Rules.
-  }, [storagePath]);
+function ImagePreview({ signedUrl, fileName }: ImagePreviewProps) {
+  if (!signedUrl) {
+    return (
+      <div style={styles.imagePlaceholder}>
+        <p style={{ color: "#999" }}>📷</p>
+        <p style={{ fontSize: "12px", color: "#999" }}>Loading...</p>
+      </div>
+    );
+  }
 
   return (
-    <div style={styles.imagePlaceholder}>
-      <p style={{ color: "#999" }}>📷</p>
-      <p style={{ fontSize: "12px", color: "#999" }}>{storagePath.split("/").pop()}</p>
-    </div>
+    <img
+      src={signedUrl}
+      alt={fileName}
+      style={{
+        width: "100%",
+        height: "100%",
+        objectFit: "cover",
+      }}
+    />
   );
 }
 

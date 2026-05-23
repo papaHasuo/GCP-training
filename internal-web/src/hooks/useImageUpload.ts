@@ -10,6 +10,7 @@ interface Upload {
   mimeType: string;
   uploadedAt: any;
   storagePath: string;
+  signedUrl?: string; // ← 署名付き URL
 }
 
 export function useImageUpload() {

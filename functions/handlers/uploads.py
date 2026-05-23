@@ -86,7 +86,7 @@ def upload(req: https_fn.Request) -> https_fn.Response:
 
 @https_fn.on_request()
 def my_uploads(req: https_fn.Request) -> https_fn.Response:
-    """Get user's uploaded images"""
+    """Get user's uploaded images with signed URLs"""
     if req.method == "OPTIONS":
         return json_response({"ok": True}, 204)
     
@@ -97,15 +97,32 @@ def my_uploads(req: https_fn.Request) -> https_fn.Response:
     try:
         uid = decoded["uid"]
         db = _init_firestore()
+        bucket = _init_storage()
         
         # Get all uploads for user
         docs = db.collection("users").document(uid).collection("uploads").stream()
         uploads = []
+        
+        from datetime import timedelta
+        
         for doc in docs:
             doc_dict = doc.to_dict()
-            # Convert DatetimeWithNanoseconds to ISO 8601 string for JSON serialization
+            
+            # Convert DatetimeWithNanoseconds to ISO 8601 string
             if "uploadedAt" in doc_dict and hasattr(doc_dict["uploadedAt"], "isoformat"):
                 doc_dict["uploadedAt"] = doc_dict["uploadedAt"].isoformat()
+            
+            # Generate signed URL for the image (valid for 1 hour)
+            storage_path = doc_dict.get("storagePath")
+            if storage_path:
+                blob = bucket.blob(storage_path)
+                signed_url = blob.generate_signed_url(
+                    version="v4",
+                    expiration=timedelta(hours=1),
+                    method="GET"
+                )
+                doc_dict["signedUrl"] = signed_url
+            
             uploads.append(doc_dict)
         
         # Sort by uploadedAt descending
@@ -154,3 +171,4 @@ def delete_upload(req: https_fn.Request) -> https_fn.Response:
     
     except Exception as exc:
         return json_response({"error": str(exc)}, 500)
+
