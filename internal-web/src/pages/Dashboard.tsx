@@ -88,6 +88,13 @@ export default function Dashboard() {
           /admin/test を呼ぶ
         </button>
         <button
+          onClick={() => navigate("/images")}
+          disabled={loading}
+          style={{ backgroundColor: "#28a745", color: "white" }}
+        >
+          画像管理
+        </button>
+        <button
           onClick={() => navigate("/admin/users")}
           disabled={loading}
           style={{ backgroundColor: "#0066cc", color: "white" }}

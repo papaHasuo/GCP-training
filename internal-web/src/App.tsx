@@ -8,6 +8,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import AdminUsers from "./pages/AdminUsers";
+import ImagesPage from "./pages/ImagesPage";
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -37,6 +38,7 @@ function App() {
           ) : (
             <>
               <Route path="/" element={<Dashboard />} />
+              <Route path="/images" element={<ImagesPage />} />
               <Route
                 path="/admin/users"
                 element={
