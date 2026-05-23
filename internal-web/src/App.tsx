@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   createUserWithEmailAndPassword,
+  getIdToken,
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signInWithPopup,
@@ -14,6 +15,7 @@ function App() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [apiResult, setApiResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -35,6 +37,35 @@ function App() {
 
   const logout = async () => {
     await signOut(auth);
+    setApiResult(null);
+  };
+
+  const callMeApi = async () => {
+    if (!auth.currentUser) {
+      return;
+    }
+
+    setError(null);
+    setApiResult(null);
+    setLoading(true);
+    try {
+      const token = await getIdToken(auth.currentUser, true);
+      const response = await fetch("http://localhost:8080/me", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = (await response.json()) as { email?: string; error?: string; uid?: string };
+      if (!response.ok) {
+        throw new Error(data.error ?? "API呼び出しに失敗しました");
+      }
+      setApiResult(`認証済み: uid=${data.uid}, email=${data.email}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "API呼び出しに失敗しました");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const signInWithEmail = async () => {
@@ -97,7 +128,13 @@ function App() {
       ) : (
         <>
           <p>ログイン中: {user?.email}</p>
-          <button onClick={logout}>ログアウト</button>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
+            <button onClick={callMeApi} disabled={loading}>
+              /me を呼ぶ
+            </button>
+            <button onClick={logout}>ログアウト</button>
+          </div>
+          {apiResult ? <p>{apiResult}</p> : null}
         </>
       )}
     </main>
