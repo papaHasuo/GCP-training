@@ -2,6 +2,7 @@ import firebase_admin
 from firebase_admin import auth
 import functions_framework
 import os
+import json
 
 PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT", "gcp-learning-497122")
 
@@ -102,3 +103,52 @@ def admin_test(request):
             "role": role,
         }
     )
+
+
+@functions_framework.http
+def admin_users(request):
+    if request.method == "OPTIONS":
+        return "", 204, _cors_headers()
+
+    decoded, error_response = _verify_bearer_token(request)
+    if error_response:
+        return error_response
+
+    role_check = _require_role(["admin"])(decoded)
+    if role_check:
+        return role_check
+
+    if request.method != "POST":
+        return _json({"error": "POST method required"}, 405)
+
+    try:
+        payload = request.get_json()
+        email = payload.get("email")
+        password = payload.get("password")
+        role = payload.get("role", "viewer")
+
+        if not email or not password:
+            return _json({"error": "email and password are required"}, 400)
+
+        if role not in ["admin", "editor", "viewer"]:
+            return _json({"error": f"Invalid role: {role}"}, 400)
+
+        user = auth.create_user(email=email, password=password)
+        auth.set_custom_user_claims(user.uid, {"role": role})
+
+        return _json(
+            {
+                "message": f"User created: {email}",
+                "uid": user.uid,
+                "email": user.email,
+                "role": role,
+            },
+            201,
+        )
+
+    except auth.EmailAlreadyExistsError:
+        return _json({"error": "Email already exists"}, 409)
+    except ValueError as e:
+        return _json({"error": f"Invalid input: {str(e)}"}, 400)
+    except Exception as e:
+        return _json({"error": f"Failed to create user: {str(e)}"}, 500)
