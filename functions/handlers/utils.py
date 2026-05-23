@@ -1,11 +1,16 @@
 import os
+import json
 import firebase_admin
 from firebase_admin import auth
+from firebase_functions import https_fn
 
 PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT", "gcp-learning-497122")
 
-if not firebase_admin._apps:
-    firebase_admin.initialize_app(options={"projectId": PROJECT_ID})
+def _init_firebase():
+    if not firebase_admin._apps:
+        firebase_admin.initialize_app(options={"projectId": PROJECT_ID})
+
+_init_firebase()
 
 
 def cors_headers():
@@ -20,10 +25,14 @@ def cors_headers():
 def json_response(payload, status=200):
     headers = {"Content-Type": "application/json"}
     headers.update(cors_headers())
-    return payload, status, headers
+    return https_fn.Response(
+        json.dumps(payload),
+        status=status,
+        headers=headers
+    )
 
 
-def verify_bearer_token(request):
+def verify_bearer_token(request: https_fn.Request):
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer "):
         return None, json_response({"error": "Missing or invalid Authorization header"}, 401)

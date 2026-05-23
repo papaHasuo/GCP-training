@@ -1,6 +1,7 @@
 from datetime import datetime
 import firebase_admin
 from firebase_admin import auth, firestore
+from firebase_functions import https_fn
 from .utils import (
     verify_bearer_token,
     get_user_role,
@@ -9,15 +10,20 @@ from .utils import (
     cors_headers,
 )
 
-db = firestore.client()
 
-
-def admin_users(request):
+def admin_users(req: https_fn.Request) -> https_fn.Response:
     """Create a new user (admin only)."""
-    if request.method == "OPTIONS":
-        return "", 204, cors_headers()
+    # Initialize Firestore client lazily
+    db = firestore.client()
+    
+    if req.method == "OPTIONS":
+        return https_fn.Response(
+            "",
+            status=204,
+            headers=cors_headers()
+        )
 
-    decoded, error_response = verify_bearer_token(request)
+    decoded, error_response = verify_bearer_token(req)
     if error_response:
         return error_response
 
@@ -25,11 +31,11 @@ def admin_users(request):
     if role_check:
         return role_check
 
-    if request.method != "POST":
+    if req.method != "POST":
         return json_response({"error": "POST method required"}, 405)
 
     try:
-        payload = request.get_json()
+        payload = req.get_json()
         email = payload.get("email")
         password = payload.get("password")
         role = payload.get("role", "viewer")

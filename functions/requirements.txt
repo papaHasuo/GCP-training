@@ -1,2 +1,2 @@
-firebase-admin==7.1.0
-functions-framework==3.8.1
+firebase_functions~=0.5.0
+firebase-admin==7.4.0
