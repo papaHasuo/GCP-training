@@ -37,6 +37,25 @@ def _verify_bearer_token(request):
         return None, _json({"error": f"Invalid token: {detail}"}, 401)
 
 
+def _get_user_role(decoded):
+    """Extract role from decoded token."""
+    role = decoded.get("role", "viewer")
+    return role
+
+
+def _require_role(required_roles):
+    """Check if user has required role. Returns error response if not."""
+    def check(decoded):
+        user_role = _get_user_role(decoded)
+        if user_role not in required_roles:
+            return _json(
+                {"error": f"Forbidden: requires one of {required_roles}"}, 403
+            )
+        return None
+
+    return check
+
+
 @functions_framework.http
 def health(request):
     if request.method == "OPTIONS":
@@ -52,10 +71,34 @@ def me(request):
     if error_response:
         return error_response
 
+    role = _get_user_role(decoded)
     return _json(
         {
             "uid": decoded.get("uid"),
             "email": decoded.get("email"),
+            "role": role,
             "message": "Authenticated",
+        }
+    )
+
+
+@functions_framework.http
+def admin_test(request):
+    if request.method == "OPTIONS":
+        return "", 204, _cors_headers()
+    decoded, error_response = _verify_bearer_token(request)
+    if error_response:
+        return error_response
+
+    role_check = _require_role(["admin"])(decoded)
+    if role_check:
+        return role_check
+
+    role = _get_user_role(decoded)
+    return _json(
+        {
+            "message": "Admin endpoint accessed",
+            "uid": decoded.get("uid"),
+            "role": role,
         }
     )

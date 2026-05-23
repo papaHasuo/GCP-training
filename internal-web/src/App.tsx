@@ -56,11 +56,44 @@ function App() {
           Authorization: `Bearer ${token}`,
         },
       });
-      const data = (await response.json()) as { email?: string; error?: string; uid?: string };
+      const data = (await response.json()) as {
+        email?: string;
+        error?: string;
+        uid?: string;
+        role?: string;
+      };
       if (!response.ok) {
         throw new Error(data.error ?? "API呼び出しに失敗しました");
       }
-      setApiResult(`認証済み: uid=${data.uid}, email=${data.email}`);
+      setApiResult(`認証済み: uid=${data.uid}, email=${data.email}, role=${data.role}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "API呼び出しに失敗しました");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const callAdminTestApi = async () => {
+    if (!auth.currentUser) {
+      return;
+    }
+
+    setError(null);
+    setApiResult(null);
+    setLoading(true);
+    try {
+      const token = await getIdToken(auth.currentUser, true);
+      const response = await fetch("http://localhost:8080/admin/test", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = (await response.json()) as { message?: string; error?: string; role?: string };
+      if (!response.ok) {
+        throw new Error(data.error ?? "API呼び出しに失敗しました");
+      }
+      setApiResult(`Admin API: ${data.message}, role=${data.role}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "API呼び出しに失敗しました");
     } finally {
@@ -131,6 +164,9 @@ function App() {
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
             <button onClick={callMeApi} disabled={loading}>
               /me を呼ぶ
+            </button>
+            <button onClick={callAdminTestApi} disabled={loading}>
+              /admin/test を呼ぶ
             </button>
             <button onClick={logout}>ログアウト</button>
           </div>
