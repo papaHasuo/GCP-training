@@ -21,6 +21,13 @@ jobs:
       - name: Install dependencies
         run: cd internal-web && npm ci
 
+      - name: Setup Cloud Functions environment
+        run: |
+          cd functions
+          python -m venv venv
+          venv\Scripts\pip install --upgrade pip
+          venv\Scripts\pip install -r requirements.txt
+
       - name: Build React app
         env:
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}

@@ -1,2 +1,7 @@
 *.json
 !firebase.json
+.env.local
+.env.production
+venv/
+functions/venv/
+__pycache__/
