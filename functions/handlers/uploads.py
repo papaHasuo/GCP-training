@@ -12,7 +12,7 @@ def _init_firestore():
 
 
 def _init_storage():
-    return storage.bucket("gcp-learning-497122.appspot.com")
+    return storage.bucket("gcp-learning-497122-images")
 
 
 @https_fn.on_request()
