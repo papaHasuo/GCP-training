@@ -21,7 +21,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd internal-web && npm ci
-          cd ../functions && python -m venv venv && . venv/bin/activate && pip install -r requirements.txt
+          cd ../functions && python -m venv venv && ./venv/bin/pip install -r requirements.txt
 
       - name: Build React app
         env:
@@ -35,6 +35,8 @@ jobs:
         run: cd internal-web && npm run build
 
       - name: Deploy to Firebase
+        env:
+          PATH: ${{ github.workspace }}/functions/venv/bin:$PATH
         run: |
           npm install -g firebase-tools
           firebase deploy --token "${{ secrets.FIREBASE_TOKEN }}" --project gcp-learning-497122
