@@ -24,7 +24,10 @@
         "firebase-debug.log",
         "firebase-debug.*.log",
         "*.local"
-      ]
+      ],
+      "environmentVariables": {
+        "ALLOWED_ORIGIN": "https://us-central1-gcp-learning-497122.cloudfunctions.net"
+      }
     }
   ]
 }
