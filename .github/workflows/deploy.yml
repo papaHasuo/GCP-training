@@ -28,7 +28,6 @@ jobs:
           source venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
-          cd ..
 
       - name: Build React app
         env:
@@ -43,5 +42,8 @@ jobs:
 
       - name: Deploy to Firebase
         run: |
+          cd functions
+          source venv/bin/activate
+          cd ..
           npm install -g firebase-tools
           firebase deploy --token "${{ secrets.FIREBASE_TOKEN }}" --project gcp-learning-497122
