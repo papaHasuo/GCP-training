@@ -39,7 +39,7 @@ def verify_bearer_token(request: https_fn.Request):
 
     id_token = auth_header.removeprefix("Bearer ").strip()
     try:
-        decoded = auth.verify_id_token(id_token)
+        decoded = auth.verify_id_token(id_token, clock_skew_seconds=10)
         return decoded, None
     except Exception as exc:
         detail = f"{type(exc).__name__}: {repr(exc)}"
