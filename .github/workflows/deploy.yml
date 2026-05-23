@@ -24,7 +24,7 @@ jobs:
       - name: Build React app
         run: cd internal-web && npm run build
 
-      - name: Deploy to Firebase
+      - name: Deploy to Firebase Hosting
         run: |
           npm install -g firebase-tools
-          firebase deploy --token "${{ secrets.FIREBASE_TOKEN }}" --project gcp-learning-497122
+          firebase deploy --only hosting --token "${{ secrets.FIREBASE_TOKEN }}" --project gcp-learning-497122
