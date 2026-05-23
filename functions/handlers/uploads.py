@@ -102,7 +102,11 @@ def my_uploads(req: https_fn.Request) -> https_fn.Response:
         docs = db.collection("users").document(uid).collection("uploads").stream()
         uploads = []
         for doc in docs:
-            uploads.append(doc.to_dict())
+            doc_dict = doc.to_dict()
+            # Convert DatetimeWithNanoseconds to ISO 8601 string for JSON serialization
+            if "uploadedAt" in doc_dict and hasattr(doc_dict["uploadedAt"], "isoformat"):
+                doc_dict["uploadedAt"] = doc_dict["uploadedAt"].isoformat()
+            uploads.append(doc_dict)
         
         # Sort by uploadedAt descending
         uploads.sort(key=lambda x: x["uploadedAt"], reverse=True)
