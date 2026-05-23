@@ -2,6 +2,7 @@ import { useState } from "react";
 import { signOut, getIdToken } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
+import { getApiEndpoint } from "../config/apiConfig";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -23,7 +24,7 @@ export default function Dashboard() {
     setLoading(true);
     try {
       const token = await getIdToken(auth.currentUser, true);
-      const response = await fetch("http://localhost:8080/me", {
+      const response = await fetch(getApiEndpoint("/me"), {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -56,7 +57,7 @@ export default function Dashboard() {
     setLoading(true);
     try {
       const token = await getIdToken(auth.currentUser, true);
-      const response = await fetch("http://localhost:8081/admin_test", {
+      const response = await fetch(getApiEndpoint("/admin_test"), {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,

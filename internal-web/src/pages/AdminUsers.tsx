@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getIdToken } from "firebase/auth";
 import { auth } from "../firebase";
+import { getApiEndpoint } from "../config/apiConfig";
 
 interface CreateUserRequest {
   email: string;
@@ -30,7 +31,7 @@ export default function AdminUsers() {
 
     try {
       const token = await getIdToken(auth.currentUser, true);
-      const response = await fetch("http://localhost:8080/admin/users", {
+      const response = await fetch(getApiEndpoint("/admin_users"), {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
