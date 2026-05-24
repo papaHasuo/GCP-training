@@ -3,6 +3,8 @@ import uuid
 from datetime import datetime
 from firebase_functions import https_fn
 from firebase_admin import firestore, storage
+import google.auth
+import google.auth.transport.requests
 
 from .utils import json_response, verify_bearer_token
 
@@ -95,6 +97,8 @@ def my_uploads(req: https_fn.Request) -> https_fn.Response:
         return error
     
     try:
+        credentials, _ = google.auth.default()
+        credentials.refresh(google.auth.transport.requests.Request())    
         uid = decoded["uid"]
         db = _init_firestore()
         bucket = _init_storage()
@@ -119,7 +123,8 @@ def my_uploads(req: https_fn.Request) -> https_fn.Response:
                 signed_url = blob.generate_signed_url(
                     version="v4",
                     expiration=timedelta(hours=1),
-                    method="GET"
+                    method="GET",
+                    credentials=credentials
                 )
                 doc_dict["signedUrl"] = signed_url
             
