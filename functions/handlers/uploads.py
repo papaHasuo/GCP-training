@@ -97,8 +97,9 @@ def my_uploads(req: https_fn.Request) -> https_fn.Response:
         return error
     
     try:
+        # Get credentials with IAM scope for blob signing
         credentials, _ = google.auth.default()
-        credentials.refresh(google.auth.transport.requests.Request())    
+        
         uid = decoded["uid"]
         db = _init_firestore()
         bucket = _init_storage()
@@ -116,6 +117,7 @@ def my_uploads(req: https_fn.Request) -> https_fn.Response:
             if "uploadedAt" in doc_dict and hasattr(doc_dict["uploadedAt"], "isoformat"):
                 doc_dict["uploadedAt"] = doc_dict["uploadedAt"].isoformat()
             
+            
             # Generate signed URL for the image (valid for 1 hour)
             storage_path = doc_dict.get("storagePath")
             if storage_path:
@@ -124,7 +126,8 @@ def my_uploads(req: https_fn.Request) -> https_fn.Response:
                     version="v4",
                     expiration=timedelta(hours=1),
                     method="GET",
-                    credentials=credentials
+                    service_account_email=credentials.service_account_email,
+                    access_token=credentials.token
                 )
                 doc_dict["signedUrl"] = signed_url
             
