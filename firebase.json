@@ -24,10 +24,7 @@
         "firebase-debug.log",
         "firebase-debug.*.log",
         "*.local"
-      ],
-      "environmentVariables": {
-        "ALLOWED_ORIGIN": "https://gcp-learning-497122.web.app"
-      }
+      ]
     }
   ]
 }
