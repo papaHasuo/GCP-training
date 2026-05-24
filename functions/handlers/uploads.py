@@ -1,12 +1,37 @@
 import io
+import json
 import uuid
 from datetime import datetime
 from firebase_functions import https_fn
 from firebase_admin import firestore, storage
 import google.auth
 import google.auth.transport.requests
+from google.cloud import secretmanager
+from google.oauth2 import service_account
 
 from .utils import json_response, verify_bearer_token
+
+
+def _get_signing_credentials():
+    """Get service account credentials from Secret Manager for blob signing"""
+    try:
+        project_id = "gcp-learning-497122"
+        secret_name = "storage-signing-key"
+        
+        client = secretmanager.SecretManagerServiceClient()
+        secret_path = f"projects/{project_id}/secrets/{secret_name}/versions/latest"
+        response = client.access_secret_version(request={"name": secret_path})
+        
+        # Parse secret as JSON
+        secret_string = response.payload.data.decode("UTF-8")
+        key_dict = json.loads(secret_string)
+        
+        # Create credentials from service account info
+        credentials = service_account.Credentials.from_service_account_info(key_dict)
+        return credentials
+    except Exception as e:
+        print(f"Error getting signing credentials: {e}")
+        raise
 
 
 def _init_firestore():
@@ -97,8 +122,8 @@ def my_uploads(req: https_fn.Request) -> https_fn.Response:
         return error
     
     try:
-        # Get credentials with IAM scope for blob signing
-        credentials, _ = google.auth.default()
+        # Get credentials from Secret Manager for blob signing
+        credentials = _get_signing_credentials()
         
         uid = decoded["uid"]
         db = _init_firestore()
@@ -126,19 +151,7 @@ def my_uploads(req: https_fn.Request) -> https_fn.Response:
                     version="v4",
                     expiration=timedelta(hours=1),
                     method="GET",
-                    service_account_email=credentials.service_account_email,
-                    access_token=credentials.token
-                )
-                doc_dict["signedUrl"] = signed_url
-            
-            uploads.append(doc_dict)
-        
-        # Sort by uploadedAt descending
-        uploads.sort(key=lambda x: x["uploadedAt"], reverse=True)
-        
-        return json_response({"uploads": uploads}, 200)
-    
-    except Exception as exc:
+                    credentials=credentials
         return json_response({"error": str(exc)}, 500)
 
 
