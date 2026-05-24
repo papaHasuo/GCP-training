@@ -142,7 +142,6 @@ def my_uploads(req: https_fn.Request) -> https_fn.Response:
             if "uploadedAt" in doc_dict and hasattr(doc_dict["uploadedAt"], "isoformat"):
                 doc_dict["uploadedAt"] = doc_dict["uploadedAt"].isoformat()
             
-            
             # Generate signed URL for the image (valid for 1 hour)
             storage_path = doc_dict.get("storagePath")
             if storage_path:
@@ -152,6 +151,17 @@ def my_uploads(req: https_fn.Request) -> https_fn.Response:
                     expiration=timedelta(hours=1),
                     method="GET",
                     credentials=credentials
+                )
+                doc_dict["signedUrl"] = signed_url
+            
+            uploads.append(doc_dict)
+        
+        # Sort by uploadedAt descending
+        uploads.sort(key=lambda x: x["uploadedAt"], reverse=True)
+        
+        return json_response({"uploads": uploads}, 200)
+    
+    except Exception as exc:
         return json_response({"error": str(exc)}, 500)
 
 
