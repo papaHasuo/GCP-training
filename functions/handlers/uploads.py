@@ -1,7 +1,7 @@
 import io
 import json
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from firebase_functions import https_fn
 from firebase_admin import firestore, storage
 import google.auth
@@ -132,8 +132,6 @@ def my_uploads(req: https_fn.Request) -> https_fn.Response:
         # Get all uploads for user
         docs = db.collection("users").document(uid).collection("uploads").stream()
         uploads = []
-        
-        from datetime import timedelta
         
         for doc in docs:
             doc_dict = doc.to_dict()
