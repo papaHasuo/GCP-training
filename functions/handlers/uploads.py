@@ -1,11 +1,10 @@
 import io
-import os
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime
 from firebase_functions import https_fn
 from firebase_admin import firestore, storage
-from google.cloud import storage as gcs_storage
-from google.oauth2 import service_account
+import google.auth
+import google.auth.transport.requests
 
 from .utils import json_response, verify_bearer_token
 
@@ -16,41 +15,6 @@ def _init_firestore():
 
 def _init_storage():
     return storage.bucket("gcp-learning-497122-images")
-
-
-def _get_gcs_client_with_credentials():
-    """Get authenticated Google Cloud Storage client for signing URLs.
-    
-    Cloud Functions automatically sets GOOGLE_APPLICATION_CREDENTIALS,
-    which contains the service account key needed for signing URLs.
-    """
-    try:
-        # Try to get credentials from GOOGLE_APPLICATION_CREDENTIALS
-        credentials_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
-        if credentials_path and os.path.exists(credentials_path):
-            credentials = service_account.Credentials.from_service_account_file(
-                credentials_path
-            )
-            return gcs_storage.Client(
-                credentials=credentials,
-                project="gcp-learning-497122"
-            )
-    except Exception as e:
-        print(f"Warning: Could not load credentials from file: {e}")
-    
-    # Fallback: use Application Default Credentials
-    try:
-        import google.auth
-        credentials, project = google.auth.default()
-        return gcs_storage.Client(
-            credentials=credentials,
-            project="gcp-learning-497122"
-        )
-    except Exception as e:
-        print(f"Warning: Could not use default credentials: {e}")
-    
-    # Last resort: default client (may not support signed URLs)
-    return gcs_storage.Client(project="gcp-learning-497122")
 
 
 @https_fn.on_request()
@@ -124,7 +88,7 @@ def upload(req: https_fn.Request) -> https_fn.Response:
 
 @https_fn.on_request()
 def my_uploads(req: https_fn.Request) -> https_fn.Response:
-    """Get user's uploaded images with signed URLs (valid for 1 hour)"""
+    """Get user's uploaded images with signed URLs"""
     if req.method == "OPTIONS":
         return json_response({"ok": True}, 204)
     
@@ -133,16 +97,18 @@ def my_uploads(req: https_fn.Request) -> https_fn.Response:
         return error
     
     try:
+        credentials, _ = google.auth.default()
+        credentials.refresh(google.auth.transport.requests.Request())
+        
         uid = decoded["uid"]
         db = _init_firestore()
-        
-        # Get authenticated GCS client for signing URLs
-        gcs_client = _get_gcs_client_with_credentials()
-        bucket = gcs_client.bucket("gcp-learning-497122-images")
+        bucket = _init_storage()
         
         # Get all uploads for user
         docs = db.collection("users").document(uid).collection("uploads").stream()
         uploads = []
+        
+        from datetime import timedelta
         
         for doc in docs:
             doc_dict = doc.to_dict()
@@ -154,17 +120,15 @@ def my_uploads(req: https_fn.Request) -> https_fn.Response:
             # Generate signed URL for the image (valid for 1 hour)
             storage_path = doc_dict.get("storagePath")
             if storage_path:
-                try:
-                    blob = bucket.blob(storage_path)
-                    signed_url = blob.generate_signed_url(
-                        version="v4",
-                        expiration=timedelta(hours=1),
-                        method="GET"
-                    )
-                    doc_dict["signedUrl"] = signed_url
-                except Exception as url_err:
-                    print(f"Warning: Could not generate signed URL for {storage_path}: {url_err}")
-                    doc_dict["signedUrl"] = None
+                blob = bucket.blob(storage_path)
+                signed_url = blob.generate_signed_url(
+                    version="v4",
+                    expiration=timedelta(hours=1),
+                    method="GET",
+                    service_account_email=credentials.service_account_email,
+                    access_token=credentials.token,
+                )
+                doc_dict["signedUrl"] = signed_url
             
             uploads.append(doc_dict)
         
@@ -174,9 +138,6 @@ def my_uploads(req: https_fn.Request) -> https_fn.Response:
         return json_response({"uploads": uploads}, 200)
     
     except Exception as exc:
-        print(f"Error in my_uploads: {exc}")
-        import traceback
-        traceback.print_exc()
         return json_response({"error": str(exc)}, 500)
 
 
